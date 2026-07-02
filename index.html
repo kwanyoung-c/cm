@@ -427,7 +427,8 @@
     render();
   }
 
-  // 전체 정지: 재생 중단. 입장곡(fc) 위치는 보존 → 다음에 이어서 재생
+  // 재생 중단 (곡 전환·페이드 등에서 공용). 여기서는 fc 위치를 건드리지 않음.
+  // ※ 전체 정지 버튼만 별도로 fc 위치를 0으로 초기화한다(아래 컨트롤 참고).
   function stopAll(){
     cancelFade();
     audio.pause();
@@ -437,7 +438,8 @@
     render();
   }
 
-  // 서서히 줄이기: 음량을 점진적으로 0까지 낮춘 뒤 정지 (마스터 음량은 유지)
+  // 서서히 줄이기: 음량을 점진적으로 0까지 낮춘 뒤 정지.
+  // 완료되면 전체 정지와 동일하게 입장곡(fc) 위치를 0으로 초기화한다(다음엔 처음부터).
   function fadeOut(){
     if(!currentId || isPaused) return;
     cancelFade();
@@ -449,6 +451,8 @@
       if(v <= 0.01){
         audio.volume = 0;
         stopAll();                  // stopAll 내부에서 volume = masterVolume 복원
+        fcPosition = 0;             // 페이드로 끊으면 입장곡도 처음부터
+        localStorage.setItem("ot_fc_pos", "0");
       } else {
         audio.volume = v;
       }
@@ -536,7 +540,12 @@
   });
 
   // ── 컨트롤 ──
-  document.getElementById("btnStop").addEventListener("click", stopAll);
+  // 전체 정지: 재생 중단 + 입장곡(fc) 위치 초기화 → 다음엔 처음부터 재생
+  document.getElementById("btnStop").addEventListener("click", function(){
+    stopAll();
+    fcPosition = 0;
+    localStorage.setItem("ot_fc_pos", "0");
+  });
   document.getElementById("btnFade").addEventListener("click", fadeOut);
 
   var vol = document.getElementById("vol");
