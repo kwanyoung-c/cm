@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e14">
+<title>행사음악 · Opener Track</title>
+<style>
+  :root{
+    --ink:        #0b0e14;
+    --ink-2:      #0d1119;
+    --panel:      #151a24;
+    --panel-2:    #1b2230;
+    --line:       #262f40;
+    --text:       #e6eaf2;
+    --muted:      #7d8799;
+    --muted-2:    #545e70;
+
+    /* 채널(카테고리) 색상 */
+    --ch-nat:     #4c6ef5;   /* 국민의례 - 청 */
+    --ch-nat-dk:  #1e2f6b;
+    --ch-ops:     #e8a33d;   /* 운영 - 금 */
+    --ch-ops-dk:  #5c410f;
+    --ch-ent:     #12b886;   /* 입장곡 - 녹 */
+    --ch-ent-dk:  #0b3d2e;
+
+    --stop:       #e0384c;
+    --fade:       #64748b;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+
+  body{
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #12182400 0%, transparent 70%),
+      linear-gradient(180deg, var(--ink-2) 0%, var(--ink) 100%);
+    color:var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo",
+                 "Malgun Gothic", "Noto Sans KR", sans-serif;
+    min-height:100dvh;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom: 128px; /* 하단 고정 컨트롤 여백 */
+  }
+
+  .mono{
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono",
+                 "D2Coding", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing:.02em;
+  }
+
+  .wrap{ max-width:640px; margin:0 auto; padding:0 16px; }
+
+  /* ── 헤더 ── */
+  header{ padding:18px 16px 8px; max-width:640px; margin:0 auto; }
+  .eyebrow{
+    font-size:11px; letter-spacing:.28em; color:var(--muted-2);
+    text-transform:uppercase; margin:0 0 4px;
+  }
+  header h1{
+    margin:0; font-size:22px; font-weight:800; letter-spacing:-0.01em;
+  }
+  header h1 span{ color:var(--muted); font-weight:600; font-size:15px; margin-left:8px; }
+
+  /* ── 현재 재생 중 (상단 고정 모니터) ── */
+  .monitor-dock{
+    position: sticky; top:0; z-index:50;
+    padding:8px 16px 10px;
+    background: linear-gradient(180deg, var(--ink) 72%, transparent);
+    backdrop-filter: blur(6px);
+  }
+  .monitor{
+    max-width:640px; margin:0 auto;
+    display:flex; align-items:center; gap:14px;
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:14px 16px;
+    box-shadow: 0 10px 30px -18px #000, inset 0 1px 0 #ffffff08;
+  }
+  .meter{ display:flex; align-items:flex-end; gap:3px; height:34px; width:44px; flex:0 0 auto; }
+  .meter i{
+    display:block; width:5px; border-radius:2px;
+    background: var(--accent, #37414f);
+    height:6px; opacity:.35;
+  }
+  .monitor.playing .meter i{ animation: bounce .9s ease-in-out infinite; opacity:1; }
+  .monitor.playing .meter i:nth-child(1){ animation-delay:-.9s; }
+  .monitor.playing .meter i:nth-child(2){ animation-delay:-.6s; }
+  .monitor.playing .meter i:nth-child(3){ animation-delay:-.3s; }
+  .monitor.playing .meter i:nth-child(4){ animation-delay:-.75s; }
+  .monitor.playing .meter i:nth-child(5){ animation-delay:-.15s; }
+  @keyframes bounce{ 0%,100%{ height:7px; } 50%{ height:32px; } }
+
+  .monitor .m-body{ flex:1 1 auto; min-width:0; }
+  .m-label{ font-size:10px; letter-spacing:.24em; color:var(--muted-2); text-transform:uppercase; }
+  .m-title{
+    font-size:17px; font-weight:700; margin-top:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    color: var(--muted);
+  }
+  .monitor.playing .m-title, .monitor.paused .m-title{ color:var(--text); }
+  .m-sub{ display:flex; align-items:center; gap:8px; margin-top:4px; }
+  .chip{
+    font-size:10px; padding:2px 7px; border-radius:999px;
+    background:#ffffff10; color:var(--muted); border:1px solid #ffffff12;
+  }
+  .monitor .time{ font-size:12px; color:var(--muted); }
+
+  /* ── 섹션 ── */
+  section{ margin-top:22px; }
+  .sec-head{
+    display:flex; align-items:baseline; gap:10px; margin:0 0 12px; padding-left:2px;
+  }
+  .sec-head .bar{ width:14px; height:14px; border-radius:4px; background:var(--accent); flex:0 0 auto; transform:translateY(1px); }
+  .sec-head h2{ margin:0; font-size:15px; font-weight:700; letter-spacing:.02em; }
+  .sec-head .note{ font-size:11px; color:var(--muted); margin-left:auto; }
+
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .grid.one{ grid-template-columns:1fr; }
+
+  /* ── 큐 버튼 ── */
+  .cue{
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    appearance:none; -webkit-appearance:none;
+    cursor:pointer; text-align:left;
+    min-height:72px;
+    border-radius:14px;
+    border:1px solid var(--edge, var(--line));
+    background:
+      linear-gradient(180deg, var(--btn-hi, #202634), var(--btn-lo, #171d29));
+    color:var(--text);
+    padding:12px 14px;
+    display:flex; flex-direction:column; justify-content:center; gap:6px;
+    position:relative; overflow:hidden;
+    transition: transform .05s ease, box-shadow .15s ease, border-color .15s ease;
+  }
+  .cue::before{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:4px;
+    background:var(--accent); opacity:.85;
+  }
+  .cue:active{ transform:scale(.975); }
+  .cue .name{ font-size:16px; font-weight:700; line-height:1.2; }
+  .cue .code{ font-size:11px; color:var(--muted); }
+  .cue.wide{ min-height:88px; }
+  .cue.wide .name{ font-size:18px; }
+
+  .cue.is-active{
+    border-color:var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 0 26px -6px var(--accent);
+    background: linear-gradient(180deg, var(--btn-hi-a, #253046), var(--btn-lo-a, #1a2233));
+  }
+  .cue.is-active .code{ color:var(--text); }
+  .cue .status{
+    position:absolute; right:12px; top:12px; font-size:10px; letter-spacing:.1em;
+    color:var(--accent); opacity:0; text-transform:uppercase; font-weight:700;
+  }
+  .cue.is-active .status{ opacity:1; }
+  .cue.is-paused .status{ color:var(--muted); opacity:1; }
+
+  /* 채널 색 매핑 */
+  .ch-nat{ --accent:var(--ch-nat); --edge:#25325f; --btn-hi:#1a2140; --btn-lo:#141a2e; --btn-hi-a:#22305e; --btn-lo-a:#182146; }
+  .ch-ops{ --accent:var(--ch-ops); --edge:#4a3717; --btn-hi:#2a2313; --btn-lo:#1d1810; --btn-hi-a:#3d3016; --btn-lo-a:#2a2011; }
+  .ch-ent{ --accent:var(--ch-ent); --edge:#134a38; --btn-hi:#132a22; --btn-lo:#0f1f1a; --btn-hi-a:#123f30; --btn-lo-a:#0d2a20; }
+
+  /* ── 하단 고정 컨트롤 ── */
+  .console{
+    position:fixed; left:0; right:0; bottom:0; z-index:60;
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: linear-gradient(0deg, var(--ink) 60%, #0b0e1400);
+    backdrop-filter: blur(8px);
+  }
+  .console-inner{
+    max-width:640px; margin:0 auto;
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    border:1px solid var(--line); border-radius:16px;
+    padding:10px 12px 12px;
+    box-shadow: 0 -8px 30px -20px #000, inset 0 1px 0 #ffffff08;
+  }
+  .btn-row{ display:flex; gap:10px; margin-bottom:10px; }
+  .ctrl{
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    appearance:none; -webkit-appearance:none; cursor:pointer;
+    flex:1; min-height:60px; border-radius:12px;
+    border:1px solid var(--edge); color:var(--text);
+    background: linear-gradient(180deg, var(--hi), var(--lo));
+    font-size:15px; font-weight:700; letter-spacing:.02em;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition: transform .05s ease, filter .15s ease;
+  }
+  .ctrl:active{ transform:scale(.97); }
+  .ctrl:disabled{ opacity:.4; }
+  .ctrl.stop{ --edge:#5a1f27; --hi:#38141a; --lo:#280e12; color:#ff8b96; }
+  .ctrl.fade{ --edge:#334155; --hi:#222c3a; --lo:#19212c; color:#c3ccdb; }
+  .ctrl .dot{ width:9px; height:9px; border-radius:50%; }
+  .ctrl.stop .dot{ background:var(--stop); }
+  .ctrl.fade .dot{ background:var(--fade); }
+
+  .vol{
+    display:flex; align-items:center; gap:12px;
+    padding:4px 4px 2px;
+  }
+  .vol .lab{ font-size:11px; color:var(--muted); letter-spacing:.16em; min-width:52px; }
+  .vol .val{ font-size:12px; color:var(--text); min-width:38px; text-align:right; }
+  input[type=range]{
+    -webkit-appearance:none; appearance:none; flex:1;
+    height:26px; background:transparent; touch-action: manipulation;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:8px; border-radius:6px;
+    background: linear-gradient(90deg, var(--ch-ops) 0%, var(--ch-ops) var(--fill,80%), #2a3342 var(--fill,80%), #2a3342 100%);
+  }
+  input[type=range]::-moz-range-track{ height:8px; border-radius:6px; background:#2a3342; }
+  input[type=range]::-moz-range-progress{ height:8px; border-radius:6px; background:var(--ch-ops); }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:26px; height:26px; margin-top:-9px; border-radius:50%;
+    background:#fff; border:3px solid var(--ch-ops);
+    box-shadow:0 2px 8px #0008;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:24px; height:24px; border-radius:50%;
+    background:#fff; border:3px solid var(--ch-ops); box-shadow:0 2px 8px #0008;
+  }
+
+  .foot{ text-align:center; color:var(--muted-2); font-size:11px; margin:18px 0 4px; }
+
+  @media (prefers-reduced-motion: reduce){
+    .monitor.playing .meter i{ animation:none; height:20px; }
+    .cue{ transition:none; }
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <p class="eyebrow mono">Opener Track · 개회식 큐</p>
+    <h1>행사음악 <span>운영 콘솔</span></h1>
+  </header>
+
+  <!-- 현재 재생 중 (상단 고정) -->
+  <div class="monitor-dock">
+    <div class="monitor" id="monitor">
+      <div class="meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="m-body">
+        <div class="m-label mono">현재 재생 중</div>
+        <div class="m-title" id="mTitle">정지됨</div>
+        <div class="m-sub">
+          <span class="chip mono" id="mChip">대기</span>
+          <span class="time mono" id="mTime">00:00 / 00:00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="wrap">
+
+    <!-- 국민의례 -->
+    <section class="ch-nat">
+      <div class="sec-head"><span class="bar"></span><h2>국민의례</h2></div>
+      <div class="grid" id="sec-nat"></div>
+    </section>
+
+    <!-- 운영 -->
+    <section class="ch-ops">
+      <div class="sec-head"><span class="bar"></span><h2>운영</h2></div>
+      <div class="grid" id="sec-ops"></div>
+    </section>
+
+    <!-- 입장곡 -->
+    <section class="ch-ent">
+      <div class="sec-head"><span class="bar"></span><h2>입장곡</h2><span class="note">껐다 켜도 이어서 재생</span></div>
+      <div class="grid one" id="sec-ent"></div>
+    </section>
+
+    <p class="foot mono">music/ 폴더의 mp3를 재생합니다 · 버튼을 다시 누르면 일시정지</p>
+  </main>
+
+  <!-- 하단 고정 컨트롤 -->
+  <div class="console">
+    <div class="console-inner">
+      <div class="btn-row">
+        <button class="ctrl stop" id="btnStop"><span class="dot"></span>전체 정지</button>
+        <button class="ctrl fade" id="btnFade"><span class="dot"></span>서서히 줄이기</button>
+      </div>
+      <div class="vol">
+        <span class="lab mono">음량</span>
+        <input type="range" id="vol" min="0" max="100" value="80" step="1" aria-label="전체 음량">
+        <span class="val mono" id="volVal">80</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  var MUSIC_DIR = "music/";
+
+  // 큐 정의: id → { file, name, category }
+  var TRACKS = {
+    cm01:    { file:"cm01.mp3",    name:"국기에 대한 경례", cat:"nat" },
+    cm02:    { file:"cm02.mp3",    name:"애국가",          cat:"nat" },
+    cm03:    { file:"cm03.mp3",    name:"묵념곡",          cat:"nat" },
+    cm04:    { file:"cm04.mp3",    name:"무전주 애국가",   cat:"nat" },
+    fanfare: { file:"fanfare.mp3", name:"팡파레",          cat:"ops" },
+    award01: { file:"award01.mp3", name:"시상음악 01",     cat:"ops" },
+    award02: { file:"award02.mp3", name:"시상음악 02",     cat:"ops" },
+    fc:      { file:"fc.mp3",      name:"입장곡",          cat:"ent" }
+  };
+
+  var LAYOUT = {
+    nat: ["cm01","cm02","cm03","cm04"],
+    ops: ["fanfare","award01","award02"],
+    ent: ["fc"]
+  };
+
+  var CAT_LABEL = { nat:"국민의례", ops:"운영", ent:"입장곡" };
+  var CAT_COLOR = { nat:"var(--ch-nat)", ops:"var(--ch-ops)", ent:"var(--ch-ent)" };
+
+  // ── 상태 ──
+  var audio = new Audio();
+  audio.preload = "none";
+  var currentId = null;        // 현재 로드된 트랙
+  var isPaused  = false;       // 일시정지 여부
+  var fadeTimer = null;
+  var buttons = {};            // id → button element
+
+  var masterVolume = clamp01(parseFloat(localStorage.getItem("ot_vol") || "0.8"));
+  var fcPosition   = parseFloat(localStorage.getItem("ot_fc_pos") || "0") || 0; // 입장곡 이어듣기 위치
+
+  function clamp01(n){ if(isNaN(n)) return 0.8; return Math.max(0, Math.min(1, n)); }
+  function fmt(t){
+    if(!isFinite(t) || t < 0) t = 0;
+    var m = Math.floor(t/60), s = Math.floor(t%60);
+    return (m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+  }
+  // 파일명 → 큐 코드 표기 (예: cm01.mp3 → CM-01, fc.mp3 → FC)
+  function codeOf(file){
+    var base = file.replace(/\.mp3$/i,"");
+    var m = base.match(/^([a-zA-Z]+)(\d*)$/);
+    if(m){ return (m[2] ? (m[1]+"-"+m[2]) : m[1]).toUpperCase(); }
+    return base.toUpperCase();
+  }
+
+  // ── 버튼 생성 ──
+  function buildButtons(){
+    Object.keys(LAYOUT).forEach(function(cat){
+      var host = document.getElementById("sec-"+cat);
+      LAYOUT[cat].forEach(function(id){
+        var t = TRACKS[id];
+        var b = document.createElement("button");
+        b.className = "cue" + (cat==="ent" ? " wide" : "");
+        b.type = "button";
+        b.setAttribute("data-id", id);
+        b.innerHTML =
+          '<span class="status">재생중</span>' +
+          '<span class="name">' + t.name + '</span>' +
+          '<span class="code mono">' + codeOf(t.file) + ' · ' + t.file + '</span>';
+        b.addEventListener("click", function(){ onCue(id); });
+        host.appendChild(b);
+        buttons[id] = b;
+      });
+    });
+  }
+
+  // ── 큐 버튼 동작 ──
+  function onCue(id){
+    // 같은 버튼 재탭 → 일시정지/재개 토글
+    if(id === currentId){
+      if(isPaused){ resume(); } else { pause(); }
+      return;
+    }
+    play(id);
+  }
+
+  function play(id){
+    cancelFade();
+
+    // 이전 트랙 정지 (입장곡 위치는 timeupdate로 이미 저장됨)
+    audio.pause();
+
+    var t = TRACKS[id];
+    currentId = id;
+    isPaused = false;
+
+    audio.src = MUSIC_DIR + t.file;
+    audio.load();
+    audio.volume = masterVolume;
+
+    var startAt = (id === "fc") ? fcPosition : 0;
+
+    var begin = function(){
+      if(startAt > 0 && isFinite(audio.duration)){
+        try { audio.currentTime = Math.min(startAt, Math.max(0, audio.duration - 0.05)); } catch(e){}
+      }
+      audio.play().catch(function(){ /* 사용자 제스처 필요/파일없음 등 */ });
+    };
+
+    if(startAt > 0){
+      audio.addEventListener("loadedmetadata", function h(){
+        audio.removeEventListener("loadedmetadata", h);
+        begin();
+      });
+    } else {
+      begin();
+    }
+
+    render();
+  }
+
+  function pause(){
+    if(!currentId) return;
+    audio.pause();
+    isPaused = true;
+    render();
+  }
+
+  function resume(){
+    if(!currentId) return;
+    cancelFade();
+    audio.volume = masterVolume;
+    isPaused = false;
+    audio.play().catch(function(){});
+    render();
+  }
+
+  // 전체 정지: 재생 중단. 입장곡(fc) 위치는 보존 → 다음에 이어서 재생
+  function stopAll(){
+    cancelFade();
+    audio.pause();
+    audio.volume = masterVolume;
+    currentId = null;
+    isPaused = false;
+    render();
+  }
+
+  // 서서히 줄이기: 음량을 점진적으로 0까지 낮춘 뒤 정지 (마스터 음량은 유지)
+  function fadeOut(){
+    if(!currentId || isPaused) return;
+    cancelFade();
+    var STEP = 150;                 // ms
+    var startVol = audio.volume || masterVolume;
+    var dec = Math.max(0.02, startVol / (2600 / STEP)); // 약 2.6초에 걸쳐 감소
+    fadeTimer = setInterval(function(){
+      var v = audio.volume - dec;
+      if(v <= 0.01){
+        audio.volume = 0;
+        stopAll();                  // stopAll 내부에서 volume = masterVolume 복원
+      } else {
+        audio.volume = v;
+      }
+    }, STEP);
+  }
+
+  function cancelFade(){
+    if(fadeTimer){ clearInterval(fadeTimer); fadeTimer = null; }
+  }
+
+  // ── 렌더링 ──
+  var monitor = document.getElementById("monitor");
+  var mTitle  = document.getElementById("mTitle");
+  var mChip   = document.getElementById("mChip");
+  var mTime   = document.getElementById("mTime");
+
+  function render(){
+    // 버튼 상태
+    Object.keys(buttons).forEach(function(id){
+      var el = buttons[id];
+      el.classList.toggle("is-active", id === currentId && !isPaused);
+      el.classList.toggle("is-paused", id === currentId && isPaused);
+      var st = el.querySelector(".status");
+      if(id === currentId){ st.textContent = isPaused ? "일시정지" : "재생중"; }
+    });
+
+    // 모니터
+    monitor.classList.remove("playing","paused");
+    if(!currentId){
+      mTitle.textContent = "정지됨";
+      mChip.textContent = "대기";
+      mChip.style.background = "#ffffff10";
+      mChip.style.color = "var(--muted)";
+      monitor.style.removeProperty("--accent");
+      mTime.textContent = "00:00 / 00:00";
+      return;
+    }
+
+    var t = TRACKS[currentId];
+    var color = CAT_COLOR[t.cat];
+    monitor.style.setProperty("--accent", color);
+    monitor.classList.add(isPaused ? "paused" : "playing");
+    mTitle.textContent = (isPaused ? "❚❚ " : "") + t.name;
+    mChip.textContent = CAT_LABEL[t.cat] + " · " + codeOf(t.file);
+    mChip.style.background = "color-mix(in srgb, " + color + " 22%, transparent)";
+    mChip.style.color = color;
+    updateTime();
+  }
+
+  function updateTime(){
+    if(!currentId){ return; }
+    mTime.textContent = fmt(audio.currentTime) + " / " + fmt(audio.duration);
+  }
+
+  // ── 오디오 이벤트 ──
+  audio.addEventListener("timeupdate", function(){
+    if(currentId === "fc"){
+      fcPosition = audio.currentTime;
+      localStorage.setItem("ot_fc_pos", String(fcPosition));
+    }
+    updateTime();
+  });
+
+  audio.addEventListener("ended", function(){
+    if(currentId === "fc"){                // 입장곡이 끝까지 재생되면 위치 초기화
+      fcPosition = 0;
+      localStorage.setItem("ot_fc_pos", "0");
+    }
+    stopAll();
+  });
+
+  audio.addEventListener("error", function(){
+    if(!currentId) return;
+    var t = TRACKS[currentId];
+    monitor.classList.remove("playing","paused");
+    mTitle.textContent = "파일을 찾을 수 없음";
+    mChip.textContent = "music/" + t.file;
+    mChip.style.background = "color-mix(in srgb, var(--stop) 25%, transparent)";
+    mChip.style.color = "var(--stop)";
+    mTime.textContent = "확인 필요";
+    Object.keys(buttons).forEach(function(id){
+      buttons[id].classList.remove("is-active","is-paused");
+    });
+    currentId = null; isPaused = false;
+  });
+
+  // ── 컨트롤 ──
+  document.getElementById("btnStop").addEventListener("click", stopAll);
+  document.getElementById("btnFade").addEventListener("click", fadeOut);
+
+  var vol = document.getElementById("vol");
+  var volVal = document.getElementById("volVal");
+  function applyVolUI(){
+    var pct = Math.round(masterVolume * 100);
+    vol.value = pct;
+    volVal.textContent = pct;
+    vol.style.setProperty("--fill", pct + "%");
+  }
+  vol.addEventListener("input", function(){
+    masterVolume = clamp01(parseInt(vol.value,10)/100);
+    localStorage.setItem("ot_vol", String(masterVolume));
+    if(!fadeTimer){ audio.volume = masterVolume; }   // 페이드 중이 아니면 즉시 반영
+    volVal.textContent = vol.value;
+    vol.style.setProperty("--fill", vol.value + "%");
+  });
+
+  // ── 초기화 ──
+  buildButtons();
+  applyVolUI();
+  render();
+})();
+</script>
+</body>
+</html>
